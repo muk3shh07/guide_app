@@ -14,11 +14,11 @@ from rest_framework.permissions import IsAuthenticated
 
 
 from .models import (
-    User, Tourist, Guide, Agency, Destination
+    User, Tourist, Guide, Agency
 )
 
 from .serializers import (
-     CustomTokenObtainPairSerializer, UserRegistrationSerializer, UserSerializer,
+     CustomTokenObtainPairSerializer, UserRegistrationSerializer,UserLoginSerializer, UserSerializer,
     TouristSerializer, GuideSerializer, GuideListSerializer, AgencySerializer,
 )
 
@@ -74,9 +74,10 @@ class AuthViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    
     @action(detail=False, methods=['post'])
     def login(self, request):
-        serializer = UserSerializer(data=request.data)
+        serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
             login(request, user)
@@ -143,12 +144,5 @@ class AuthViewSet(viewsets.GenericViewSet):
 
 
 # User Profile Views
-class CurrentUserView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
-
 
 # Destination Views

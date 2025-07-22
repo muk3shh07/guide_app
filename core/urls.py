@@ -17,9 +17,10 @@ router.register(r'auth', views.AuthViewSet, basename='auth')
 # router.register(r'notifications', views.NotificationViewSet, basename='notification')
 
 urlpatterns = [
-    path('api/user/', views.CurrentUserView.as_view(), name='current-user'),
-    path('api/auth/login/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/refresh/', views.CustomTokenRefreshView.as_view(), name='token_refresh'),
-    path('api/auth/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('api/', include(router.urls)),
+    # ViewSet routes (this will create the endpoints you're using)
+    path('', include(router.urls)),
+    
+    # JWT token endpoints (if you want to use them separately)
+    path('token/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', views.TokenRefreshView.as_view(), name='token_refresh'),
 ]

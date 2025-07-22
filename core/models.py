@@ -65,33 +65,3 @@ class Agency(models.Model):
     def __str__(self):
         return f"Agency: {self.company_name or self.user.username}"
 
-# Destination Models
-class Destination(models.Model):
-    AREA_TYPES = (
-        ('open', 'Open Area'),
-        ('restricted', 'Restricted Area'),
-    )
-    
-    DIFFICULTY_CHOICES = (
-        ('easy', 'Easy'),
-        ('moderate', 'Moderate'),
-        ('difficult', 'Difficult'),
-        ('extreme', 'Extreme'),
-    )
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=200)
-    area_type = models.CharField(max_length=20, choices=AREA_TYPES, default='open')
-    description = models.TextField(blank=True, null=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    permit_required = models.BooleanField(default=False)
-    permit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    best_season = models.JSONField(default=list, blank=True)
-    difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='easy')
-    images = models.JSONField(default=list, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.name
-

@@ -91,7 +91,6 @@ DATABASES = {
         'PORT':config('DB_PORT',default='5432'),
     }
 }
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',

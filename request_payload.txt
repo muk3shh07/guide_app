@@ -1,0 +1,11 @@
+{
+    "username": "boiler",
+    "email": "abinash@example.com",
+    "first_name": "Abinash",
+    "last_name": "Dhakal", 
+    "phone_number": "+1234567890",
+    "password": "SecurePass123!",
+    "password_confirm": "SecurePass123!"
+}
+
+login

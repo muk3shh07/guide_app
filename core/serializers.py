@@ -5,6 +5,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     User, Tourist, Guide, Agency
 )
+
+
 # Custom JWT Token Serializer
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -37,6 +39,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         }
         
         return data
+    
+
 # User Authentication Serializers
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -63,7 +67,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('password_confirm')
 
         # Automatically assign defaults
-        validated_data['user_type'] = 'user'  # Default type
+        validated_data['user_type'] = 'tourist'  # Default type
         validated_data['is_verified'] = True
         validated_data['is_approved'] = True
 
@@ -86,7 +90,6 @@ class UserLoginSerializer(serializers.Serializer):
             if not user.is_active:
                 raise serializers.ValidationError('User account is disabled')
             attrs['user'] = user
-            print("Authenticated users::", user)
             return attrs
             
         else:
