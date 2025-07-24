@@ -16,6 +16,7 @@ pillow = "^11.3.0"
 django-filter = "^25.1"
 requests = "^2.32.4"
 djangorestframework-simplejwt = "^5.5.1"
+requests-oauthlib = "^2.0.0"
 
 
 [build-system]

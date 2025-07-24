@@ -5,8 +5,8 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'auth', views.AuthViewSet, basename='auth')
-# router.register(r'tourists', views.TouristViewSet, basename='tourist')
-# router.register(r'guides', views.GuideViewSet, basename='guide')
+router.register(r'profile', views.ProfileViewSet, basename='profile')
+router.register(r'guides', views.GuideViewSet, basename='guide')
 # router.register(r'agencies', views.AgencyViewSet, basename='agency')
 # router.register(r'destinations', views.DestinationViewSet, basename='destination')
 # router.register(r'bookings', views.BookingViewSet, basename='booking')

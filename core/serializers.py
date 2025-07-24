@@ -5,6 +5,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     User, Tourist, Guide, Agency
 )
+from .oauth_utils import GoogleOAuth, FacebookOAuth, SocialAuthUtils
 
 
 # Custom JWT Token Serializer
@@ -134,5 +135,86 @@ class AgencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Agency
         fields = '__all__'
+
+
+# Social Authentication Serializers
+class GoogleOAuthSerializer(serializers.Serializer):
+    """Serializer for Google OAuth authentication"""
+    token = serializers.CharField(required=True)
+    user_type = serializers.ChoiceField(
+        choices=User.USER_TYPES, 
+        default='tourist', 
+        required=False
+    )
+    
+    def validate(self, attrs):
+        token = attrs.get('token')
+        user_type = attrs.get('user_type', 'tourist')
+        
+        # Verify Google token
+        try:
+            google_user_data = GoogleOAuth.verify_google_token(token)
+        except serializers.ValidationError:
+            raise
+        
+        # Get or create user
+        try:
+            user, created = SocialAuthUtils.get_or_create_user_from_social_data(
+                google_user_data, 'google'
+            )
+            
+            # Set user type if this is a new user
+            if created:
+                user.user_type = user_type
+                user.save()
+            
+            attrs['user'] = user
+            attrs['created'] = created
+            attrs['google_user_data'] = google_user_data
+            
+        except Exception as e:
+            raise serializers.ValidationError(f'Failed to authenticate with Google: {str(e)}')
+        
+        return attrs
+
+
+class FacebookOAuthSerializer(serializers.Serializer):
+    """Serializer for Facebook OAuth authentication"""
+    access_token = serializers.CharField(required=True)
+    user_type = serializers.ChoiceField(
+        choices=User.USER_TYPES, 
+        default='tourist', 
+        required=False
+    )
+    
+    def validate(self, attrs):
+        access_token = attrs.get('access_token')
+        user_type = attrs.get('user_type', 'tourist')
+        
+        # Verify Facebook token
+        try:
+            facebook_user_data = FacebookOAuth.verify_facebook_token(access_token)
+        except serializers.ValidationError:
+            raise
+        
+        # Get or create user
+        try:
+            user, created = SocialAuthUtils.get_or_create_user_from_social_data(
+                facebook_user_data, 'facebook'
+            )
+            
+            # Set user type if this is a new user
+            if created:
+                user.user_type = user_type
+                user.save()
+            
+            attrs['user'] = user
+            attrs['created'] = created
+            attrs['facebook_user_data'] = facebook_user_data
+            
+        except Exception as e:
+            raise serializers.ValidationError(f'Failed to authenticate with Facebook: {str(e)}')
+        
+        return attrs
 
  
