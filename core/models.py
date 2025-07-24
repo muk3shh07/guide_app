@@ -12,6 +12,12 @@ class User(AbstractUser):
         ('admin', 'Admin'),
     )
     
+    PROVIDER_CHOICES = (
+        ('email', 'Email'),
+        ('google', 'Google'),
+        ('facebook', 'Facebook'),
+    )
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_type = models.CharField(max_length=20, choices=USER_TYPES, default='tourist')
     email = models.EmailField(unique=True)
@@ -21,6 +27,12 @@ class User(AbstractUser):
     is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Social Authentication fields
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='email')
+    provider_id = models.CharField(max_length=255, blank=True, null=True)
+    google_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    facebook_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS =['username']

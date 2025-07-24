@@ -11,6 +11,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from datetime import datetime, date
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+import requests
 
 
 from .models import (
@@ -20,6 +21,7 @@ from .models import (
 from .serializers import (
      CustomTokenObtainPairSerializer, UserRegistrationSerializer,UserLoginSerializer, UserSerializer,
     TouristSerializer, GuideSerializer, GuideListSerializer, AgencySerializer,
+    GoogleOAuthSerializer, FacebookOAuthSerializer,
 )
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -141,8 +143,198 @@ class AuthViewSet(viewsets.GenericViewSet):
                 pass
         
         return Response(user_data, status=status.HTTP_200_OK)
+    
+    from rest_framework.decorators import action
+ 
+    
+    @action(detail=False, methods=['post'])
+    def google_login(self, request):
+        """Google OAuth Login/Register"""
+        access_token = request.data.get("access_token")
+
+        if not access_token:
+            return Response({"error": "Access token is required"}, status=400)
+
+        # Validate access token using Google's UserInfo endpoint
+        google_user_info_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+        response = requests.get(
+            google_user_info_url,
+            params={'alt': 'json'},
+            headers={'Authorization': f'Bearer {access_token}'}
+        )
+
+        if response.status_code != 200:
+            return Response({"error": "Invalid Google token"}, status=400)
+
+        user_info = response.json()
+        email = user_info.get("email")
+        name = user_info.get("name", "")
+        picture = user_info.get("picture")
+
+        if not email:
+            return Response({"error": "Email not found in Google profile"}, status=400)
+
+        # Get or create the user
+        user, created = User.objects.get_or_create(email=email, defaults={
+            'username': email.split('@')[0],
+            'first_name': name.split()[0] if name else '',
+            'last_name': name.split()[-1] if len(name.split()) > 1 else '',
+            'is_verified': True,
+            'is_approved': True,
+        })
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Optional: Add custom claims
+        access['user_type'] = user.user_type
+        access['username'] = user.username
+        access['email'] = user.email
+
+        message = 'Registration successful' if created else 'Login successful'
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'access': str(access),
+            'refresh': str(refresh),
+            'message': message,
+            'created': created
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    
+    @action(detail=False, methods=['post'])
+    def facebook_login(self, request):
+        """Facebook OAuth Login/Register"""
+        access_token = request.data.get('access_token')
+
+        if not access_token:
+            return Response({'error': 'Access token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 1: Validate access token and get user info from Facebook
+        fb_response = requests.get(
+            'https://graph.facebook.com/me',
+            params={
+                'fields': 'id,name,email',
+                'access_token': access_token
+            }
+        )
+
+        if fb_response.status_code != 200:
+            return Response({'error': 'Invalid Facebook token'}, status=status.HTTP_400_BAD_REQUEST)
+
+        fb_data = fb_response.json()
+        email = fb_data.get('email')
+        name = fb_data.get('name')
+
+        if not email:
+            return Response({'error': 'Email permission is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 2: Get or create user
+        user, created = User.objects.get_or_create(email=email, defaults={
+            'username': email.split('@')[0],
+            'full_name': name,  # optional: adjust according to your user model
+            'is_active': True,
+        })
+
+        # Step 3: Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Optional: add custom claims
+        access['user_type'] = getattr(user, 'user_type', '')
+        access['username'] = user.username
+        access['email'] = user.email
+
+        message = 'Registration successful' if created else 'Login successful'
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'access': str(access),
+            'refresh': str(refresh),
+            'message': message,
+            'created': created
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 # User Profile Views
+class ProfileViewSet(viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['get', 'put'])
+    def tourist(self, request):
+        """Get or update tourist profile"""
+        if request.user.user_type != 'tourist':
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        tourist_profile, created = Tourist.objects.get_or_create(user=request.user)
+        
+        if request.method == 'GET':
+            serializer = TouristSerializer(tourist_profile)
+            return Response(serializer.data)
+        
+        elif request.method == 'PUT':
+            serializer = TouristSerializer(tourist_profile, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get', 'put'])
+    def guide(self, request):
+        """Get or update guide profile"""
+        if request.user.user_type != 'guide':
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        guide_profile, created = Guide.objects.get_or_create(user=request.user)
+        
+        if request.method == 'GET':
+            serializer = GuideSerializer(guide_profile)
+            return Response(serializer.data)
+        
+        elif request.method == 'PUT':
+            serializer = GuideSerializer(guide_profile, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get', 'put'])
+    def agency(self, request):
+        """Get or update agency profile"""
+        if request.user.user_type != 'agency':
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        agency_profile, created = Agency.objects.get_or_create(user=request.user)
+        
+        if request.method == 'GET':
+            serializer = AgencySerializer(agency_profile)
+            return Response(serializer.data)
+        
+        elif request.method == 'PUT':
+            serializer = AgencySerializer(agency_profile, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Guide Discovery Views
+class GuideViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public guide listing and search"""
+    queryset = Guide.objects.filter(user__is_approved=True, user__is_active=True)
+    serializer_class = GuideListSerializer
+    permission_classes = [permissions.AllowAny]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['languages', 'specializations', 'user__is_verified']
+    search_fields = ['user__first_name', 'user__last_name', 'specializations', 'bio']
+    ordering_fields = ['average_rating', 'hourly_rate', 'daily_rate', 'experience_years']
+    ordering = ['-average_rating']
+    
+    @action(detail=True, methods=['get'])
+    def availability(self, request, pk=None):
+        """Check guide availability"""
+        guide = self.get_object()
+        # TODO: Implement availability logic with bookings
+        return Response({'message': 'Availability checking not implemented yet'})
 
 # Destination Views
