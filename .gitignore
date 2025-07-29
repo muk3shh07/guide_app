@@ -1,0 +1,51 @@
+# ===============================
+# Python / Django
+# ===============================
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env
+*.local
+venv/
+env/
+ENV/
+*.egg-info/
+*.idea/
+*.vscode/
+
+# Secrets
+secrets.json
+config.json
+
+# Media / static (optional)
+media/
+staticfiles/
+
+# ===============================
+# Flutter
+# ===============================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/Runner.xcworkspace
+*.iml
+
+# Generated files
+*.lock
+pubspec.lock
+
+# Misc
+.DS_Store
