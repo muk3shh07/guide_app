@@ -36,6 +36,8 @@ CORS_ALLOW_ALL_ORIGINS = True #only for development
 # Application definition
 
 INSTALLED_APPS = [
+    'admin_interface',
+    'colorfield',
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -172,3 +174,44 @@ GOOGLE_OAUTH2_CLIENT_SECRET = config('GOOGLE_OAUTH2_CLIENT_SECRET', default='')
 # Facebook OAuth Settings
 FACEBOOK_APP_ID = config('FACEBOOK_APP_ID', default='')
 FACEBOOK_APP_SECRET = config('FACEBOOK_APP_SECRET', default='')
+
+# Admin Interface Configuration
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+SILKY_PYTHON_PROFILER = True
+
+# Admin Interface Theme Settings
+ADMIN_INTERFACE = {
+    'THEME': 'default',  # You can also use 'bootstrap4'
+    'LANGUAGE_CODE': 'en-us',
+    'SHOW_UI_BUILDER': True,
+    'ENVIRONMENT': 'Guide App Admin',
+    'THEME_TITLE': 'Guide App Administration',
+    'WELCOME_SIGN': 'Welcome to Guide App Admin Panel',
+    'COPYRIGHT': 'Guide App 2024',
+    'SUPPORT_URL': '',
+    'CONFIRM_UNSAVED_CHANGES': True,
+    'SHOW_LANGUAGE_CHOOSER': False,
+    'LIST_FILTER_DROPDOWN': True,
+    'RECENT_ACTIONS_LIMIT': 10,
+    'TABS': [
+        {
+            'app': 'core',
+            'label': 'User Management',
+            'models': [
+                {'model': 'core.User', 'label': 'Users'},
+                {'model': 'core.Tourist', 'label': 'Tourists'},
+                {'model': 'core.Guide', 'label': 'Guides'},
+                {'model': 'core.Agency', 'label': 'Agencies'},
+            ]
+        },
+        {
+            'app': 'core',
+            'label': 'Services',
+            'models': [
+                {'model': 'core.Package', 'label': 'Packages'},
+                {'model': 'core.Booking', 'label': 'Bookings'},
+                {'model': 'core.Rating', 'label': 'Ratings'},
+            ]
+        },
+    ]
+}

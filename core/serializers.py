@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
-    User, Tourist, Guide, Agency
+    User, Tourist, Guide, Agency, Package, Booking, Rating, 
 )
 from .oauth_utils import GoogleOAuth, FacebookOAuth, SocialAuthUtils
 
@@ -46,12 +46,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+    user_type = serializers.ChoiceField(choices=User.USER_TYPES, default='tourist')
 
     class Meta:
         model = User
         fields = (
             'username', 'email', 'password', 'password_confirm',
-            'first_name', 'last_name', 'phone_number'
+            'first_name', 'last_name', 'phone_number', 'user_type'
         )
         extra_kwargs = {
             'first_name': {'required': True},
@@ -67,13 +68,23 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
 
-        # Automatically assign defaults
-        validated_data['user_type'] = 'tourist'  # Default type
-        validated_data['is_verified'] = True
-        validated_data['is_approved'] = True
+        if validated_data.get('user_type') == 'agency':
+            validated_data['is_verified'] = False  # Agencies need admin approval
+            validated_data['is_approved'] = False
+        else:
+            validated_data['is_verified'] = True
+            validated_data['is_approved'] = True
 
         user = User.objects.create_user(**validated_data)
+
+        # ✅ Add this:
+        if user.is_tourist:
+            Tourist.objects.create(user=user)
+        elif user.is_agency:
+            Agency.objects.create(user=user)
+
         return user
+
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -135,6 +146,106 @@ class AgencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Agency
         fields = '__all__'
+
+class AgencyListSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Agency
+        fields = ('id', 'user', 'company_name', 'address', 'website', 
+                 'average_rating', 'total_bookings', 'description')
+
+class PackageSerializer(serializers.ModelSerializer):
+    agency = AgencyListSerializer(read_only=True)
+    
+    class Meta:
+        model = Package
+        fields = '__all__'
+        read_only_fields = ('id', 'average_rating', 'total_bookings', 'created_at', 'updated_at')
+
+class PackageListSerializer(serializers.ModelSerializer):
+    agency = AgencyListSerializer(read_only=True)
+    
+    class Meta:
+        model = Package
+        fields = ('id', 'name', 'description', 'package_type', 'agency', 
+                 'duration_days', 'price', 'max_people', 'destinations', 
+                 'images', 'average_rating', 'total_bookings')
+
+class BookingSerializer(serializers.ModelSerializer):
+    tourist = TouristSerializer(read_only=True)
+    package = PackageListSerializer(read_only=True)
+    guide = GuideListSerializer(read_only=True)
+    agency = AgencyListSerializer(read_only=True)
+    
+    class Meta:
+        model = Booking
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+class BookingCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = ('booking_type', 'package', 'guide', 'agency', 'start_date', 
+                 'end_date', 'number_of_people', 'special_requests')
+    
+    def validate(self, attrs):
+        booking_type = attrs.get('booking_type')
+        
+        # Ensure only one of package, guide, or agency is selected
+        selected_count = sum([
+            1 if attrs.get('package') else 0,
+            1 if attrs.get('guide') else 0,
+            1 if attrs.get('agency') else 0
+        ])
+        
+        if selected_count != 1:
+            raise serializers.ValidationError(
+                "Exactly one of package, guide, or agency must be selected"
+            )
+        
+        # Validate booking type matches the selected item
+        if booking_type == 'package' and not attrs.get('package'):
+            raise serializers.ValidationError("Package is required for package booking")
+        elif booking_type == 'guide' and not attrs.get('guide'):
+            raise serializers.ValidationError("Guide is required for guide booking")
+        elif booking_type == 'agency' and not attrs.get('agency'):
+            raise serializers.ValidationError("Agency is required for agency booking")
+        
+        return attrs
+
+class RatingSerializer(serializers.ModelSerializer):
+    tourist = TouristSerializer(read_only=True)
+    package = PackageListSerializer(read_only=True)
+    guide = GuideListSerializer(read_only=True)
+    agency = AgencyListSerializer(read_only=True)
+    
+    class Meta:
+        model = Rating
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at')
+
+class RatingCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ('rating_type', 'package', 'guide', 'agency', 'rating', 'review')
+    
+    def validate(self, attrs):
+        rating_type = attrs.get('rating_type')
+        
+        # Ensure only one of package, guide, or agency is selected
+        selected_count = sum([
+            1 if attrs.get('package') else 0,
+            1 if attrs.get('guide') else 0,
+            1 if attrs.get('agency') else 0
+        ])
+        
+        if selected_count != 1:
+            raise serializers.ValidationError(
+                "Exactly one of package, guide, or agency must be selected"
+            )
+        
+        return attrs
 
 
 # Social Authentication Serializers

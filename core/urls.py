@@ -4,17 +4,25 @@ from rest_framework_simplejwt.views import TokenVerifyView
 from . import views
 
 router = DefaultRouter()
+# Authentication and Profile Management
 router.register(r'auth', views.AuthViewSet, basename='auth')
 router.register(r'profile', views.ProfileViewSet, basename='profile')
+
+# Public Browse Views (for tourists)
 router.register(r'guides', views.GuideViewSet, basename='guide')
-# router.register(r'agencies', views.AgencyViewSet, basename='agency')
-# router.register(r'destinations', views.DestinationViewSet, basename='destination')
-# router.register(r'bookings', views.BookingViewSet, basename='booking')
-# router.register(r'payments', views.PaymentViewSet, basename='payment')
-# router.register(r'ratings', views.RatingViewSet, basename='rating')
-# router.register(r'chatrooms', views.ChatRoomViewSet, basename='chatroom')
-# router.register(r'messages', views.MessageViewSet, basename='message')
-# router.register(r'notifications', views.NotificationViewSet, basename='notification')
+router.register(r'agencies', views.AgencyViewSet, basename='agency')
+router.register(r'packages', views.PackageViewSet, basename='package')
+router.register(r'homepage', views.HomepageViewSet, basename='homepage')
+
+# Tourist-specific Views
+router.register(r'tourist/bookings', views.TouristBookingViewSet, basename='tourist-booking')
+router.register(r'tourist/ratings', views.TouristRatingViewSet, basename='tourist-rating')
+
+# Agency Management Views
+router.register(r'agency/manage', views.AgencyManagementViewSet, basename='agency-manage')
+
+# Admin Views
+router.register(r'admin', views.AdminViewSet, basename='admin')
 
 urlpatterns = [
     # ViewSet routes (this will create the endpoints you're using)
